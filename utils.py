@@ -1,7 +1,23 @@
 import numpy as np
 import pprint
 import matplotlib.pyplot as plt
+import torch
 
+from torch.utils.data import Dataset
+
+
+class Data(Dataset):
+    def __init__(self, inputs, labels):
+        self.inputs = inputs
+        self.labels = labels
+
+    def __len__(self):
+        return len(self.inputs)
+
+    def __getitem__(self, idx):
+        input_data = torch.tensor(self.inputs[idx], dtype=torch.float32)
+        label_data = torch.tensor(self.labels[idx], dtype=torch.long)
+        return input_data, label_data
 
 def plot_class_distribution(data, **kwargs):
     """
