@@ -105,12 +105,14 @@ def evaluate(model, test_loader, metric):
     return metric.compute()
 
 
-print("\nTraining...")
-for ep in range(EPOCHS):
+if __name__ == "__main__":
 
-    loss, metric_train = train(model, train_loader, optimizer, criterion, metric)
-    # scheduler.step(loss)
-    metric_test = evaluate(model, test_loader, metric)
-    if ep % 5 == 0:
-        print(f'Epoch {ep}, Loss: {loss.item():.4f}, Accuracy: {metric_train.item():.4f}')
-        print(f'\tAccuracy: {metric_test.item():.4f}')
+    print("\nTraining...")
+    for ep in range(EPOCHS):
+
+        loss, metric_train = train(model, train_loader, optimizer, criterion, metric)
+        # scheduler.step(loss)
+        metric_test = evaluate(model, test_loader, metric)
+        if ep % 5 == 0:
+            print(f'Epoch {ep}, Loss: {loss.item():.4f}, Accuracy: {metric_train.item():.4f}')
+            print(f'\tAccuracy: {metric_test.item():.4f}')
