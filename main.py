@@ -36,7 +36,7 @@ y_train = np.load('y_train.npy')
 y_train = y_train[:, 1]  # removing index column
 
 # Normalize data_train
-scaler = MinMaxScaler(feature_range=(-1, 1))  # StandardScaler()
+scaler = MinMaxScaler(feature_range=(-1, 1))
 X_train = scaler.fit_transform(X_train)
 
 # np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
