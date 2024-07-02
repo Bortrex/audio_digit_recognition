@@ -24,7 +24,6 @@ class Net(nn.Module):
     def forward(self, x):
         x = F.relu(self.conv1(x))
         x = F.relu(self.bn1(self.conv2(x)))
-        # x = self.dp1( F.leaky_relu(self.conv3(x)))
         x = self.dp1(x)
         x = F.relu(self.bn2(self.conv3(x)))
 

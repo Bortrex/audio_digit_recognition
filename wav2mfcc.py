@@ -1,8 +1,8 @@
-import sys
 import os
-import librosa
+import sys
 from argparse import ArgumentParser
 
+import librosa
 import numpy as np
 from scipy.io import wavfile
 

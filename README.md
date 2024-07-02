@@ -16,6 +16,8 @@ It automatically handles the stereo signal into mono by taking the mean value of
 
 In addition, to compensate for the different lengths of the audio signals, the MFCCs are filled with `-9999999` value to the maximum length of the dataset.
 
+### `main.py`
+Reads the MFCCs from the dataset, pre-processes the dataset by scaling the dataset between `-1, +1` and trains the model.
 
 
 ## Author

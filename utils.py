@@ -1,8 +1,8 @@
-import numpy as np
 import pprint
-import matplotlib.pyplot as plt
-import torch
 
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from torch.utils.data import Dataset
 
 
@@ -18,6 +18,7 @@ class Data(Dataset):
         input_data = torch.tensor(self.inputs[idx], dtype=torch.float32)
         label_data = torch.tensor(self.labels[idx], dtype=torch.long)
         return input_data, label_data
+
 
 def plot_class_distribution(data, **kwargs):
     """
