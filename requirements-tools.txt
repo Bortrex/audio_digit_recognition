@@ -3,4 +3,4 @@
 librosa
 scipy
 pandas
-matplotlib
+sounddevice

@@ -1,4 +1,4 @@
-"""Command-line interface for MFCC training and WAV prediction."""
+"""Command-line interface for training, WAV prediction, and microphone prediction."""
 
 import argparse
 import random
@@ -202,6 +202,11 @@ def run_training(data_dir=".", epochs=EPOCHS, batch_size=BATCH_SIZE,
 
     save_checkpoint(checkpoint_path, model, scaler, epochs, batch_size, full_data)
     print(f"Checkpoint saved to {checkpoint_path}")
+    if validation_loader is not None:
+        from plots import save_validation_confusion_matrix
+
+        save_validation_confusion_matrix(model, validation_loader, device)
+        print("Confusion matrix: runtime_outputs/confusion_matrix.png")
     return model, scaler
 
 
@@ -239,6 +244,9 @@ def main(argv=None):
     predict_parser.add_argument("wav", type=Path, help="WAV file to classify")
     predict_parser.add_argument("--checkpoint", type=Path, default=Path("checkpoints/model.pt"),
                                 help="Trained checkpoint (default: checkpoints/model.pt)")
+    record_parser = commands.add_parser("record", help="Record one second and classify it")
+    record_parser.add_argument("--checkpoint", type=Path, default=Path("checkpoints/model.pt"),
+                               help="Trained checkpoint (default: checkpoints/model.pt)")
     args = parser.parse_args(argv)
     if args.command == "train":
         run_training(args.data_dir, args.epochs, args.batch_size, args.checkpoint,
@@ -251,6 +259,13 @@ def main(argv=None):
         except (OSError, ValueError, RuntimeError) as error:
             parser.error(str(error))
         print(f"Prediction: {label}")
+    elif args.command == "record":
+        from recording import record_and_predict
+
+        try:
+            record_and_predict(args.checkpoint)
+        except (OSError, ValueError, RuntimeError) as error:
+            parser.error(str(error))
 
 
 if __name__ == "__main__":

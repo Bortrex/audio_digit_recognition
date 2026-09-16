@@ -65,12 +65,14 @@ def decode_class(class_index, class_to_label):
     return "other" if label == -1 else str(label)
 
 
-def predict_wav(path, checkpoint_path="checkpoints/model.pt", device="cpu"):
-    """Return the decoded label for one recording."""
+def predict_wav(path, checkpoint_path="checkpoints/model.pt", device="cpu", return_logits=False):
+    """Return a decoded label, optionally with CPU logits from the same forward pass."""
     if not Path(path).is_file():
         raise FileNotFoundError(f"WAV file not found: {path}")
     model, scaler, checkpoint = load_checkpoint(checkpoint_path, device)
     inputs = prepare_wav_input(path, scaler, checkpoint["preprocessing"]).to(device)
     with torch.no_grad():
-        class_index = model(inputs).argmax(dim=1).item()
-    return decode_class(class_index, checkpoint["class_to_label"])
+        logits = model(inputs)
+        class_index = logits.argmax(dim=1).item()
+    label = decode_class(class_index, checkpoint["class_to_label"])
+    return (label, logits[0].cpu()) if return_logits else label

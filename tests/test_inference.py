@@ -137,6 +137,20 @@ class InferenceTests(unittest.TestCase):
             self.assertEqual(error.exception.code, 2)
             self.assertIn(message, errors.getvalue())
 
+    def test_logits_are_returned_from_a_single_forward_pass(self):
+        wav = Path(self.directory.name) / "mock.wav"
+        wav.touch()
+        model, scaler, checkpoint = load_checkpoint(self.path)
+        with patch("inference.load_checkpoint", return_value=(model, scaler, checkpoint)), \
+             patch("inference.wav_to_features", return_value=np.zeros(416)), \
+             patch.object(model, "forward", wraps=model.forward) as forward:
+            label, logits = predict_wav(wav, self.path, return_logits=True)
+        forward.assert_called_once()
+        self.assertEqual(label, "6")
+        self.assertEqual(tuple(logits.shape), (11,))
+        self.assertEqual(logits.argmax().item(), 7)
+        self.assertFalse(logits.requires_grad)
+
     def test_missing_corrupt_and_incompatible_checkpoints(self):
         with self.assertRaisesRegex(FileNotFoundError, "Checkpoint not found"):
             load_checkpoint(self.path.with_name("missing.pt"))

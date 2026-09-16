@@ -58,7 +58,7 @@ with patch.object(torch, "load", forbidden), \
     import audio_preprocessing
     import inference
     import main
-    for args in (["--help"], ["train", "--help"], ["predict", "--help"]):
+    for args in (["--help"], ["train", "--help"], ["predict", "--help"], ["record", "--help"]):
         try:
             main.main(args)
         except SystemExit as error:
@@ -173,6 +173,7 @@ assert torch.backends.cudnn.benchmark == benchmark
              patch("main.create_training_components", return_value=(model, None, None, None)), \
              patch("main.train", return_value=(1.0, torch.tensor(0.5))), \
              patch("main.evaluate", side_effect=AssertionError("Unexpected evaluation")), \
+             patch("plots.save_validation_confusion_matrix", side_effect=AssertionError("Unexpected confusion matrix")), \
              tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "full.pt"
             run_training(epochs=1, checkpoint_path=path, full_data=True)
@@ -278,6 +279,7 @@ assert torch.backends.cudnn.benchmark == benchmark
                  patch("main.train", side_effect=training) as training_mock, \
                  patch("main.evaluate", side_effect=evaluation) as evaluation_mock, \
                  patch("main.save_checkpoint", side_effect=lambda *args: events.append("save")), \
+                 patch("plots.save_validation_confusion_matrix") as confusion, \
                  contextlib.redirect_stdout(output):
                 run_training(epochs=2, num_workers=0)
             expected = ["clock", "train", "evaluate", "train", "evaluate"]
@@ -285,6 +287,7 @@ assert torch.backends.cudnn.benchmark == benchmark
                 expected.insert(0, "sync")
                 expected.append("sync")
             self.assertEqual(events, expected + ["clock", "save"])
+            confusion.assert_called_once()
             self.assertEqual(training_mock.call_count, 2)
             self.assertEqual(evaluation_mock.call_count, 2)
             self.assertEqual(loaders.call_args.args[-1], 0)
