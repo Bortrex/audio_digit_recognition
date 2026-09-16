@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -39,7 +38,3 @@ class Net(nn.Module):
 
         # Remove the spatial dimension while preserving the batch dimension.
         return x.squeeze(-1)
-
-    @torch.no_grad()
-    def predict(self, x):
-        pass

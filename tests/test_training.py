@@ -7,6 +7,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 import random
+import contextlib
+import io
 
 import numpy as np
 import torch
@@ -44,7 +46,8 @@ benchmark = torch.backends.cudnn.benchmark
 def forbidden(*args, **kwargs):
     raise AssertionError("Application setup during import/help")
 
-with patch.object(np, "load", forbidden), \
+with patch.object(torch, "load", forbidden), \
+     patch.object(np, "load", forbidden), \
      patch.object(torch.cuda, "empty_cache", forbidden), \
      patch.object(torch.cuda, "is_available", forbidden), \
      patch.object(torch.utils.data, "DataLoader", forbidden), \
@@ -52,8 +55,10 @@ with patch.object(np, "load", forbidden), \
      patch.object(Data, "__init__", forbidden), \
      patch.object(MinMaxScaler, "fit_transform", forbidden):
     import preprocessing
+    import audio_preprocessing
+    import inference
     import main
-    for args in (["--help"], ["train", "--help"]):
+    for args in (["--help"], ["train", "--help"], ["predict", "--help"]):
         try:
             main.main(args)
         except SystemExit as error:
@@ -230,6 +235,58 @@ assert torch.backends.cudnn.benchmark == benchmark
         loss, accuracy = evaluate(model, loader, criterion, MulticlassAccuracy(), "cpu")
         self.assertAlmostEqual(loss, expected, places=6)
         self.assertAlmostEqual(accuracy.item(), 2 / 3, places=6)
+
+    def test_configured_workers_reach_both_loaders_and_cli(self):
+        inputs = np.zeros((22, 1, 32, 13))
+        labels = np.tile(np.arange(11), 2)
+        for workers in (0, 2, 4):
+            loaders = create_loaders(inputs, labels, inputs, labels, num_workers=workers)
+            self.assertTrue(all(loader.num_workers == workers for loader in loaders))
+        with patch("main.run_training") as run:
+            main(["train", "--num-workers", "0"])
+            self.assertEqual(run.call_args.kwargs["num_workers"], 0)
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as error:
+            main(["train", "--num-workers", "-1"])
+        self.assertEqual(error.exception.code, 2)
+
+    def test_timer_wraps_only_epoch_loop_and_preserves_calls(self):
+        for cuda in (False, True):
+            events = []
+            output = io.StringIO()
+            times = iter([100.0, 254.2])
+            def clock():
+                events.append("clock")
+                return next(times)
+            def training(*args):
+                events.append("train")
+                return 1.0, torch.tensor(0.5)
+            def evaluation(*args):
+                events.append("evaluate")
+                return 2.0, torch.tensor(0.4)
+            inputs = np.zeros((220, 416))
+            labels = np.tile(np.arange(11), 20)
+            with patch("main.torch.cuda.is_available", return_value=cuda), \
+                 patch("main.torch.cuda.empty_cache"), \
+                 patch("main.seed_random_generators"), \
+                 patch("main.torch.cuda.synchronize", side_effect=lambda *args: events.append("sync")), \
+                 patch("main.time.perf_counter", side_effect=clock), \
+                 patch("main.load_training_data", return_value=(inputs, labels)), \
+                 patch("main.create_loaders", return_value=("train loader", "validation loader")) as loaders, \
+                 patch("main.create_training_components", return_value=("model", "loss", "optimizer", "metric")), \
+                 patch("main.train", side_effect=training) as training_mock, \
+                 patch("main.evaluate", side_effect=evaluation) as evaluation_mock, \
+                 patch("main.save_checkpoint", side_effect=lambda *args: events.append("save")), \
+                 contextlib.redirect_stdout(output):
+                run_training(epochs=2, num_workers=0)
+            expected = ["clock", "train", "evaluate", "train", "evaluate"]
+            if cuda:
+                expected.insert(0, "sync")
+                expected.append("sync")
+            self.assertEqual(events, expected + ["clock", "save"])
+            self.assertEqual(training_mock.call_count, 2)
+            self.assertEqual(evaluation_mock.call_count, 2)
+            self.assertEqual(loaders.call_args.args[-1], 0)
+            self.assertIn("Training completed in 2m 34.2s", output.getvalue())
 
 
 if __name__ == "__main__":

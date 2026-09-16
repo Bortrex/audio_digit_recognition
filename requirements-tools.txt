@@ -1,4 +1,4 @@
-# Optional organizer preprocessing and exploratory plotting dependencies.
+# WAV prediction, organizer preprocessing, and plotting dependencies.
 -r requirements.txt
 librosa
 scipy

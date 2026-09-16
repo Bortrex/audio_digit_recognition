@@ -1,7 +1,8 @@
-"""Command-line interface for training the MFCC classifier."""
+"""Command-line interface for MFCC training and WAV prediction."""
 
 import argparse
 import random
+import time
 from pathlib import Path
 
 import numpy as np
@@ -27,6 +28,7 @@ from preprocessing import (
 SEED = 1234
 EPOCHS = 101
 BATCH_SIZE = 128
+NUM_WORKERS = 4
 
 
 def seed_random_generators(seed=SEED):
@@ -47,18 +49,18 @@ def seed_worker(worker_id):
 
 
 def create_loaders(train_inputs, train_labels, validation_inputs=None,
-                   validation_labels=None, batch_size=BATCH_SIZE):
+                   validation_labels=None, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS):
     """Build seeded loaders; full-data mode has no validation loader."""
     train_loader = DataLoader(
         Data(train_inputs, train_labels),
-        batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True,
+        batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True,
         generator=torch.Generator().manual_seed(SEED), worker_init_fn=seed_worker,
     )
     validation_loader = None
     if validation_inputs is not None:
         validation_loader = DataLoader(
             Data(validation_inputs, validation_labels),
-            batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True,
+            batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True,
             generator=torch.Generator().manual_seed(SEED), worker_init_fn=seed_worker,
         )
     return train_loader, validation_loader
@@ -151,10 +153,13 @@ def save_checkpoint(path, model, scaler, epochs, batch_size, full_data=False):
 
 
 def run_training(data_dir=".", epochs=EPOCHS, batch_size=BATCH_SIZE,
-                 checkpoint_path="checkpoints/model.pt", full_data=False):
+                 checkpoint_path="checkpoints/model.pt", full_data=False, num_workers=NUM_WORKERS):
     """Run setup and training explicitly, then persist the final model and scaler."""
     if epochs < 1 or batch_size < 1:
         raise ValueError("epochs and batch_size must be positive")
+
+    if num_workers < 0:
+        raise ValueError("num_workers must be nonnegative")
 
     torch.cuda.empty_cache()
     seed_random_generators()
@@ -165,7 +170,7 @@ def run_training(data_dir=".", epochs=EPOCHS, batch_size=BATCH_SIZE,
         prepare_training_data(inputs, labels, full_data=full_data, seed=SEED)
     )
     train_loader, validation_loader = create_loaders(
-        train_inputs, train_labels, validation_inputs, validation_labels, batch_size
+        train_inputs, train_labels, validation_inputs, validation_labels, batch_size, num_workers
     )
     print(f"Training samples: {len(train_labels)}")
     if validation_labels is not None:
@@ -173,6 +178,9 @@ def run_training(data_dir=".", epochs=EPOCHS, batch_size=BATCH_SIZE,
     model, criterion, optimizer, metric = create_training_components(device)
 
     print("\nTraining...")
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+    started = time.perf_counter()
     for ep in range(epochs):
         loss, metric_train = train(
             model, train_loader, optimizer, criterion, metric, device
@@ -186,6 +194,12 @@ def run_training(data_dir=".", epochs=EPOCHS, batch_size=BATCH_SIZE,
             if validation_loader is not None:
                 print(f"\tValidation loss: {validation_loss:.4f}, Accuracy: {metric_validation.item():.4f}")
 
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+    elapsed = time.perf_counter() - started
+    minutes, seconds = divmod(elapsed, 60)
+    print(f"Training completed in {int(minutes)}m {seconds:.1f}s ({elapsed / epochs:.2f}s/epoch)")
+
     save_checkpoint(checkpoint_path, model, scaler, epochs, batch_size, full_data)
     print(f"Checkpoint saved to {checkpoint_path}")
     return model, scaler
@@ -195,6 +209,13 @@ def positive_int(value):
     value = int(value)
     if value < 1:
         raise argparse.ArgumentTypeError("must be a positive integer")
+    return value
+
+
+def nonnegative_int(value):
+    value = int(value)
+    if value < 0:
+        raise argparse.ArgumentTypeError("must be a nonnegative integer")
     return value
 
 
@@ -212,9 +233,24 @@ def main(argv=None):
                               help="Output checkpoint, overwritten on success (default: checkpoints/model.pt)")
     train_parser.add_argument("--full-data", action="store_true",
                               help="Train on all labelled samples without validation")
+    train_parser.add_argument("--num-workers", type=nonnegative_int, default=NUM_WORKERS,
+                              help="DataLoader workers (default: 4)")
+    predict_parser = commands.add_parser("predict", help="Classify one WAV recording")
+    predict_parser.add_argument("wav", type=Path, help="WAV file to classify")
+    predict_parser.add_argument("--checkpoint", type=Path, default=Path("checkpoints/model.pt"),
+                                help="Trained checkpoint (default: checkpoints/model.pt)")
     args = parser.parse_args(argv)
     if args.command == "train":
-        run_training(args.data_dir, args.epochs, args.batch_size, args.checkpoint, args.full_data)
+        run_training(args.data_dir, args.epochs, args.batch_size, args.checkpoint,
+                     args.full_data, num_workers=args.num_workers)
+    elif args.command == "predict":
+        from inference import predict_wav
+
+        try:
+            label = predict_wav(args.wav, args.checkpoint)
+        except (OSError, ValueError, RuntimeError) as error:
+            parser.error(str(error))
+        print(f"Prediction: {label}")
 
 
 if __name__ == "__main__":
