@@ -1,0 +1,6 @@
+# Optional organizer preprocessing and exploratory plotting dependencies.
+-r requirements.txt
+librosa
+scipy
+pandas
+matplotlib

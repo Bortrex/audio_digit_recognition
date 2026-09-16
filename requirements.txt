@@ -1,0 +1,6 @@
+# Training dependencies; versions are unpinned.
+numpy
+scikit-learn
+torch
+torcheval
+torchinfo
