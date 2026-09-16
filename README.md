@@ -1,6 +1,6 @@
 # Spoken-digit recognition
 
-A convolutional neural network for spoken digits, developed for the 2017 iML
+A convolutional neural network for spoken digits, developed for the iML
 challenge at ULiège. The model combines 2D and 1D convolutions to classify
 **digits 0-9 and other/non-digit** from 13 MFCC coefficients over 32 time steps.
 
@@ -25,7 +25,6 @@ means other; labels `0` through `9` are digits. Padding (`-9999999`) becomes zer
 
 Training uses these arrays directly. The supplied `wav2mfcc.py` and
 `transform_wav.py` generated the MFCC representation and remain unchanged.
-Competition WAVs and datasets are not redistributed.
 
 ## Train
 
@@ -40,9 +39,10 @@ Development training uses a stratified 90/10 split and fits the scaler only on
 training samples. Full-data training uses all labelled samples without validation.
 Both save the model and fitted scaler to `checkpoints/model.pt`.
 
-Defaults: SGD, learning rate 0.05, 101 epochs, batch size 128, and zero loader
-workers. Options include `--epochs`, `--batch-size`, `--num-workers`, and
-`--checkpoint`. Use separate checkpoint paths to keep different runs. Training
+Defaults: SGD, learning rate 0.05, 26 epochs and batch size 128, and num-workers 0. Options include `--epochs`, `--batch-size`, `--num-workers`, and
+`--checkpoint`. Use separate checkpoint paths to keep different runs. 
+
+Training
 reports epoch-loop time, loss, and accuracy.
 
 ## Predict a WAV
@@ -52,11 +52,7 @@ python main.py predict path/to/audio.wav
 ```
 
 Use `--checkpoint` to select another trained model. Prediction runs on CPU and
-prints a digit or `other`. WAV preprocessing retains the sample rate and PCM
-amplitude, converts stereo to mono, and explicitly uses the boundary-padding
-behavior required to reproduce the organizers' MFCC representation. Short inputs
-are padded; inputs over 32 MFCC frames are truncated. The saved scaler is reused
-without refitting.
+prints a `[0-9]` digit or `other`. WAV preprocessing reproduces the organizers' representation. Short inputs are padded; inputs over 32 MFCC frames are truncated. 
 
 ## Predict from the microphone
 
@@ -64,8 +60,7 @@ without refitting.
 python main.py record
 ```
 
-After the countdown and **Speak!**, capture lasts one second at 16 kHz, mono,
-signed 16-bit PCM. `--checkpoint` selects a different trained model. Each call
+After the countdown and **Speak!**, capture lasts 1 second. `--checkpoint` selects a different trained model. Each call
 overwrites the same three local files:
 
 - `recordings/latest.wav`
@@ -73,8 +68,7 @@ overwrites the same three local files:
 - `recordings/latest_prediction.png`
 
 These let you listen to the capture, inspect its time-frequency representation,
-and compare softmax scores across all 11 classes. Scores are not calibrated
-confidence estimates; the decision uses the model's logits.
+and compare softmax scores across all 11 classes. 
 
 ## Results and limitations
 

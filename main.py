@@ -26,7 +26,7 @@ from preprocessing import (
 )
 
 SEED = 1234
-EPOCHS = 101
+EPOCHS = 26
 BATCH_SIZE = 128
 NUM_WORKERS = 0
 
