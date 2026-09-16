@@ -1,9 +1,10 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
 class Net(nn.Module):
+    """Convolutional classifier for 32 x 13 MFCC inputs."""
+
     def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 128, kernel_size=(3, 3), stride=2, bias=True)
@@ -33,10 +34,7 @@ class Net(nn.Module):
         x = F.relu(self.conv1d2(x))
         x = self.dp2(x)
         x = F.relu(self.conv1d3(x))
-        x = F.relu(self.conv1d4(x))
+        x = self.conv1d4(x)
 
-        return x.squeeze()
-
-    @torch.no_grad()
-    def predict(self, x):
-        pass
+        # Remove the spatial dimension while preserving the batch dimension.
+        return x.squeeze(-1)
