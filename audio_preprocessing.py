@@ -25,7 +25,7 @@ def extract_mfcc(path, n_coefficients=MFCC_SHAPE[1]):
         import librosa
         from scipy.io import wavfile
     except ImportError as error:
-        raise RuntimeError("WAV prediction requires librosa and scipy; install requirements-tools.txt") from error
+        raise RuntimeError("WAV prediction requires librosa and scipy; install requirements.txt") from error
 
     try:
         sample_rate, signal = wavfile.read(path)

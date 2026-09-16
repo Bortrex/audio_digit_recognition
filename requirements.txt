@@ -1,7 +1,12 @@
-# Training dependencies; versions are unpinned.
+# Training, WAV prediction, microphone capture, and plotting.
+# Versions are unpinned.
 numpy
 scikit-learn
 torch
 torcheval
 torchinfo
 matplotlib
+librosa
+scipy
+pandas
+sounddevice

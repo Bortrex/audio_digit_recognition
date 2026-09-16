@@ -38,3 +38,6 @@ env/
 # Local editor settings
 .vscode/
 .idea/
+
+# Local development utilities
+exploration/

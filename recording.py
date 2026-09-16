@@ -17,7 +17,7 @@ def record_and_predict(checkpoint_path="checkpoints/model.pt", output_dir="recor
     try:
         import sounddevice as sd
     except (ImportError, OSError) as error:
-        raise RuntimeError("Microphone capture requires sounddevice/PortAudio; install requirements-tools.txt") from error
+        raise RuntimeError("Microphone capture requires sounddevice/PortAudio; install requirements.txt") from error
     if not Path(checkpoint_path).is_file():
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
     try:

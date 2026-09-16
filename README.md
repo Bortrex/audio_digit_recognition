@@ -1,20 +1,17 @@
 # Spoken-digit recognition
 
-A convolutional neural network for spoken digits, developed for the iML
-challenge at ULiège. The model combines 2D and 1D convolutions to classify
-**digits 0-9 and other/non-digit** from 13 MFCC coefficients over 32 time steps.
+A convolutional neural network for spoken-digit recognition, developed for the
+Kaggle iML challenge at ULiège. The model combines 2D and 1D convolutions to classify
+digits 0–9 and other/non-digit from 13 MFCC coefficients over 32 time steps.
 
 ## Install
 
 ```sh
 python -m pip install -r requirements.txt
-# WAV and microphone prediction, plus audio tools:
-python -m pip install -r requirements-tools.txt
 ```
 
-Microphone capture uses sounddevice and the system's default input device.
-Allow microphone access in your operating system; PortAudio may need to be
-installed separately on some platforms.
+Microphone capture uses the default input device. Allow microphone access in your
+operating system, some platforms also require PortAudio to be installed separately.
 
 ## Data
 
@@ -24,11 +21,12 @@ the remaining 416 values are 32 time steps x 13 MFCC coefficients. Label `-1`
 means other; labels `0` through `9` are digits. Padding (`-9999999`) becomes zero.
 
 Training uses these arrays directly. The supplied `wav2mfcc.py` and
-`transform_wav.py` generated the MFCC representation and remain unchanged.
+`transform_wav.py` generated the MFCC representation. Competition audio and
+datasets are not redistributed.
 
 ## Train
 
-Place the labelled arrays in the repository root, or use `--data-dir`.
+Place the data arrays in the repository root, or use `--data-dir`.
 
 ```sh
 python main.py train
@@ -37,13 +35,14 @@ python main.py train --full-data
 
 Development training uses a stratified 90/10 split and fits the scaler only on
 training samples. Full-data training uses all labelled samples without validation.
-Both save the model and fitted scaler to `checkpoints/model.pt`.
+Both save the model and fitted scaler to `checkpoints/model.pt`. Use `--checkpoint`
+to choose another output path.
 
-Defaults: SGD, learning rate 0.05, 26 epochs and batch size 128, and num-workers 0. Options include `--epochs`, `--batch-size`, `--num-workers`, and
-`--checkpoint`. Use separate checkpoint paths to keep different runs. 
+The matrix below represents the stratified development validation split, cells
+show sample counts and row percentages.
 
-Training
-reports epoch-loop time, loss, and accuracy.
+<!-- ![Development validation confusion matrix](docs/images/confusion_matrix.png) -->
+<img src="docs/images/confusion_matrix.png" width="600" height="500">
 
 ## Predict a WAV
 
@@ -51,8 +50,9 @@ reports epoch-loop time, loss, and accuracy.
 python main.py predict path/to/audio.wav
 ```
 
-Use `--checkpoint` to select another trained model. Prediction runs on CPU and
-prints a `[0-9]` digit or `other`. WAV preprocessing reproduces the organizers' representation. Short inputs are padded; inputs over 32 MFCC frames are truncated. 
+Prediction prints a `[0-9]` digit or `other`. Use `--checkpoint` to select another model.
+WAV preprocessing uses the organizers' MFCC representation and boundary-padding
+behavior. Short inputs are padded and inputs over 32 MFCC frames are truncated.
 
 ## Predict from the microphone
 
@@ -60,42 +60,30 @@ prints a `[0-9]` digit or `other`. WAV preprocessing reproduces the organizers' 
 python main.py record
 ```
 
-After the countdown and **Speak!**, capture lasts 1 second. `--checkpoint` selects a different trained model. Each call
-overwrites the same three local files:
+After the countdown and **Speak!**, capture lasts 1 second. Each run overwrites:
 
 - `recordings/latest.wav`
 - `recordings/latest_spectrogram.png`
 - `recordings/latest_prediction.png`
 
-These let you listen to the capture, inspect its time-frequency representation,
-and compare softmax scores across all 11 classes. 
+These let you listen to the recording, inspect its spectrogram, and compare model
+scores across all 11 classes.
 
-## Results and limitations
+<p>
+  <img src="docs/images/microphone_spectrogram.png" alt="Microphone recording Mel spectrogram" width="49%">
+  <img src="docs/images/microphone_prediction.png" alt="Microphone class scores, predicting digit 8" width="49%">
+</p>
 
-Development training writes `runtime_outputs/confusion_matrix.png` once after
-the final epoch, using validation-set counts. Full-data training does not create
-one. Both `recordings/` and `runtime_outputs/` are ignored by Git.
-Representative figures can later be selected manually and copied to `docs/images/`
-for documentation; runtime outputs are never copied there automatically.
+## Structure
 
-Microphone and unseen-speaker accuracy depend on the trained checkpoint and
-recording conditions. The competition test set used unseen speakers, while the
-validation split here is random and stratified. There is no continuous listening,
-silence detection, speech segmentation, or submission generation.
-
-## Structure and tests
-
-- `main.py`: CLI, training, evaluation, and checkpoint saving.
+- `main.py`: commands, training, evaluation, and checkpoints.
 - `model.py`, `dataset.py`, `preprocessing.py`: network and array preparation.
-- `audio_preprocessing.py`, `inference.py`: shared WAV prediction pipeline.
-- `recording.py`, `plots.py`: microphone capture and generated figures.
-- `exploration/`: optional visualization and local diagnostics.
-- `tests/`: regression tests using synthetic inputs and mocked capture.
+- `audio_preprocessing.py`, `inference.py`: WAV prediction.
+- `recording.py`, `plots.py`: microphone capture and plots.
+- `docs/images/`: selected documentation figures.
 
-```sh
-python main.py --help
-python -m unittest discover -s tests -v
-```
+Generated `recordings/`, `runtime_outputs/`, and `checkpoints/` folders are ignored
+by Git.
 
 ## Author
 

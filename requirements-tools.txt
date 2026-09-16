@@ -1,6 +1,0 @@
-# WAV prediction, organizer preprocessing, and plotting dependencies.
--r requirements.txt
-librosa
-scipy
-pandas
-sounddevice
