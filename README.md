@@ -41,8 +41,9 @@ to choose another output path.
 The matrix below represents the stratified development validation split, cells
 show sample counts and row percentages.
 
-<!-- ![Development validation confusion matrix](docs/images/confusion_matrix.png) -->
-<img src="docs/images/confusion_matrix.png" width="600" height="500">
+<p align="center">
+  <img src="docs/images/confusion_matrix.png" width="600" height="500">
+</p>
 
 ## Predict a WAV
 
