@@ -59,13 +59,58 @@ def save_spectrogram(wav_path, path):
     _save(fig, path)
 
 
+# def save_confusion_matrix(true_labels, predicted_labels, path):
+#     counts = confusion_matrix(true_labels, predicted_labels, labels=list(CLASS_TO_LABEL))
+#     fig, ax = plt.subplots(figsize=(8, 7))
+#     ConfusionMatrixDisplay(counts, display_labels=DISPLAY_LABELS).plot(
+#         ax=ax, cmap="Blues", values_format="d", colorbar=False
+#     )
+#     ax.set(title="Validation confusion matrix", xlabel="Predicted label", ylabel="True label")
+#     _save(fig, path)
+#     return counts
+
 def save_confusion_matrix(true_labels, predicted_labels, path):
-    counts = confusion_matrix(true_labels, predicted_labels, labels=list(CLASS_TO_LABEL))
+    labels = list(CLASS_TO_LABEL)
+
+    # Raw counts for annotations
+    counts = confusion_matrix(true_labels, predicted_labels
+        , labels=labels)
+
+    # Row-normalized values for the colors
+    normalized = confusion_matrix(true_labels, predicted_labels
+        , labels=labels, normalize="true")
+
     fig, ax = plt.subplots(figsize=(8, 7))
-    ConfusionMatrixDisplay(counts, display_labels=DISPLAY_LABELS).plot(
-        ax=ax, cmap="Blues", values_format="d", colorbar=False
-    )
-    ax.set(title="Validation confusion matrix", xlabel="Predicted label", ylabel="True label")
+
+    display = ConfusionMatrixDisplay(normalized
+        , display_labels=DISPLAY_LABELS)
+    display.plot(ax=ax, cmap="Blues", values_format=".2f"
+        , colorbar=False)
+
+    # Replace normalized annotations with raw counts
+    for i in range(counts.shape[0]):
+        for j in range(counts.shape[1]):            
+            text_obj = display.text_[i, j]
+            text_color = text_obj.get_color()            
+            # Hide original single-size text
+            text_obj.set_visible(False)            
+            # Main Count (Larger, shifted slightly up)
+            ax.text(
+                j, i - 0.12, f"{counts[i, j]}",
+                ha='center', va='center',
+                fontsize=11, fontweight='bold', color=text_color
+            )            
+            # Percentage (Smaller, shifted slightly down)
+            ax.text(
+                j, i + 0.18, f"{normalized[i, j]:.0%}",
+                ha='center', va='center',
+                fontsize=8, alpha=0.85, color=text_color
+            )
+                
+
+    ax.set(title="Validation confusion matrix",
+        xlabel="Predicted label", ylabel="True label")
+
     _save(fig, path)
     return counts
 
