@@ -49,10 +49,10 @@ python main.py train --help
 
 Both modes reshape features to `(N, 1, 32, 13)` and save the final model and fitted
 scaler. Training never reads `X_test.npy`. Defaults are SGD with learning rate
-`0.05`, 101 epochs, batch size 128, four loader workers, and output
+`0.05`, 101 epochs, batch size 128, zero loader workers, and output
 `checkpoints/model.pt`. Choose separate checkpoint paths to retain both modes;
 existing files at the selected path are overwritten. `--num-workers` controls both
-loaders (default: 4). Each run reports wall-clock time for the epoch training and
+loaders (default: 0). Each run reports wall-clock time for the epoch training and
 validation loop, excluding setup and checkpoint saving; CUDA is synchronized at
 the timer boundaries. Compare worker counts on your own machine before tuning.
 
@@ -82,14 +82,22 @@ prints a digit or `other`. It requires a format-version-2 checkpoint.
 
 WAV loading uses SciPy, preserves the recording's sample rate and PCM amplitude,
 averages stereo channels as in the organizer script, and calls librosa for 13
-MFCC coefficients. Frames are flattened in time-major order. Short recordings
+MFCC coefficients with reflected waveform boundaries (`pad_mode="reflect"`). Frames are flattened in time-major order. Short recordings
 are padded with `-9999999`; recordings over 32 frames keep only the first 32.
 Padding is then replaced with zero, the checkpoint scaler is applied without
 refitting, and features become a float32 `(1, 1, 32, 13)` tensor. There is no
-resampling, silence detection, or segmentation. Audio-library versions can affect
-MFCC values. With librosa 0.11.0, the local competition WAV produced the expected
-layout but numerically differed from its supplied feature row; exact compatibility
-with the array-generation environment remains unverified.
+resampling, silence detection, or segmentation. Librosa 0.4.3 used reflection padding; [librosa 0.9 changed the default to zero
+padding](https://librosa.org/doc/0.11.0/changelog.html#v0-9-0). Explicit reflection
+matches local organizer row ID 17744 to a maximum absolute error of `0.0001171`
+(mean `0.000007592`), compared with `13.3497` (mean `0.296817`) under zero padding.
+This is a close numerical match on that recording, not bitwise equality or a
+claim covering every competition sample.
+
+To compare local-only audio and arrays without adding them to the test suite:
+
+```sh
+python -m exploration.compare_mfcc test-17744_1308_2.wav --sample-id 17744
+```
 
 ## Checkpoints
 
@@ -145,7 +153,7 @@ encoding error, set `$env:PYTHONIOENCODING = "utf-8"` in PowerShell.
 
 Microphone input, submission generation, and speaker-grouped validation are not
 implemented. Microphone support still needs capture/device handling and a defined
-recording length. Validate MFCC compatibility before relying on arbitrary audio.
+recording length. Check additional recordings when validating broader MFCC compatibility.
 A separate performance pass can compare worker counts over representative runs.
 
 ## Author

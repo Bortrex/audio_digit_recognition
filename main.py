@@ -28,7 +28,7 @@ from preprocessing import (
 SEED = 1234
 EPOCHS = 101
 BATCH_SIZE = 128
-NUM_WORKERS = 4
+NUM_WORKERS = 0
 
 
 def seed_random_generators(seed=SEED):
@@ -234,7 +234,7 @@ def main(argv=None):
     train_parser.add_argument("--full-data", action="store_true",
                               help="Train on all labelled samples without validation")
     train_parser.add_argument("--num-workers", type=nonnegative_int, default=NUM_WORKERS,
-                              help="DataLoader workers (default: 4)")
+                              help="DataLoader workers (default: 0)")
     predict_parser = commands.add_parser("predict", help="Classify one WAV recording")
     predict_parser.add_argument("wav", type=Path, help="WAV file to classify")
     predict_parser.add_argument("--checkpoint", type=Path, default=Path("checkpoints/model.pt"),

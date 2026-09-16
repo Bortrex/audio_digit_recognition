@@ -17,7 +17,7 @@ def to_mono(signal):
 
 
 def extract_mfcc(path, n_coefficients=MFCC_SHAPE[1]):
-    """Read at the WAV's sample rate; keep PCM amplitude and librosa defaults."""
+    """Keep PCM amplitude and use the organizer's reflected waveform boundaries."""
     path = Path(path)
     if not path.is_file():
         raise FileNotFoundError(f"WAV file not found: {path}")
@@ -32,7 +32,11 @@ def extract_mfcc(path, n_coefficients=MFCC_SHAPE[1]):
         signal = to_mono(signal).astype(np.float32)
         if signal.ndim != 1 or signal.size == 0 or not np.isfinite(signal).all():
             raise ValueError("expected nonempty, finite mono/stereo audio")
-        return librosa.feature.mfcc(y=signal, sr=sample_rate, n_mfcc=n_coefficients)
+        # librosa 0.4.3 used reflection; modern defaults zero-pad STFT boundaries.
+        # This is separate from padding missing MFCC frames with the sentinel.
+        return librosa.feature.mfcc(
+            y=signal, sr=sample_rate, n_mfcc=n_coefficients, pad_mode="reflect"
+        )
     except (OSError, ValueError, EOFError) as error:
         raise ValueError(f"Cannot read or process WAV '{path}': {error}") from error
 

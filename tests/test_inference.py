@@ -53,6 +53,7 @@ class AudioTests(unittest.TestCase):
         kwargs = mfcc.call_args.kwargs
         self.assertEqual(kwargs["sr"], 16000)
         self.assertEqual(kwargs["n_mfcc"], 13)
+        self.assertEqual(kwargs["pad_mode"], "reflect")
         self.assertEqual(kwargs["y"].dtype, np.float32)
         np.testing.assert_array_equal(kwargs["y"], [2000, 3000, 4000])
 

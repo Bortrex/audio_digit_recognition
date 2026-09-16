@@ -188,7 +188,7 @@ assert torch.backends.cudnn.benchmark == benchmark
         self.assertEqual(list(first.sampler), list(second.sampler))
         for loader in (first, validation):
             self.assertEqual(loader.batch_size, 128)
-            self.assertEqual(loader.num_workers, 4)
+            self.assertEqual(loader.num_workers, 0)
             self.assertTrue(loader.pin_memory)
             self.assertFalse(loader.drop_last)
             self.assertIsNotNone(loader.worker_init_fn)
@@ -243,6 +243,8 @@ assert torch.backends.cudnn.benchmark == benchmark
             loaders = create_loaders(inputs, labels, inputs, labels, num_workers=workers)
             self.assertTrue(all(loader.num_workers == workers for loader in loaders))
         with patch("main.run_training") as run:
+            main(["train"])
+            self.assertEqual(run.call_args.kwargs["num_workers"], 0)
             main(["train", "--num-workers", "0"])
             self.assertEqual(run.call_args.kwargs["num_workers"], 0)
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as error:
